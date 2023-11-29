@@ -13,3 +13,5 @@ src/massif.vgdb.out
 src/massif.out.984337
 .envrc
 *.gpkg
+*.tif
+*.xml
