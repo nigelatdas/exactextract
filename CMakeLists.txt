@@ -155,6 +155,7 @@ if(BUILD_TEST)
     test/test_raster_iterator.cpp
     test/test_traversal_areas.cpp
     test/test_stats.cpp
+    test/test_spatial_index.cpp
     test/test_utils.cpp)
 
     # Create an executable to run the unit tests
@@ -231,6 +232,8 @@ set(PROJECT_SOURCES
         src/raster_coverage_iterator.h
         src/side.cpp
         src/side.h
+        src/spatial_index.cpp
+        src/spatial_index.h
         src/traversal.cpp
         src/traversal.h
         src/traversal_areas.cpp
