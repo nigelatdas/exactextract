@@ -12,3 +12,4 @@ src/xtmemory.kcg.984337.1
 src/massif.vgdb.out
 src/massif.out.984337
 .envrc
+filtered_system_farms.gpkg output_filtered.gpkg
