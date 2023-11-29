@@ -7,3 +7,8 @@ cmake-build-*
 .vscode
 .idea/
 callgrind.out.*
+build
+src/xtmemory.kcg.984337.1
+src/massif.vgdb.out
+src/massif.out.984337
+.envrc

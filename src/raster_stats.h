@@ -1,9 +1,10 @@
 // Copyright (c) 2018-2022 ISciences, LLC.
 // All rights reserved.
 //
-// This software is licensed under the Apache License, Version 2.0 (the "License").
-// You may not use this file except in compliance with the License. You may
-// obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0.
+// This software is licensed under the Apache License, Version 2.0 (the
+// "License"). You may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// http://www.apache.org/licenses/LICENSE-2.0.
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -19,65 +20,76 @@
 #include <limits>
 #include <unordered_map>
 
-#include "raster_cell_intersection.h"
-#include "weighted_quantiles.h"
-#include "variance.h"
-
 #include "../vend/optional.hpp"
+#include "raster_cell_intersection.h"
+#include "variance.h"
+#include "weighted_quantiles.h"
 
 namespace exactextract {
 
-    template<typename T>
+    template <typename T>
     class RasterStats {
-
     public:
         /**
-         * Compute raster statistics from a Raster representing intersection percentages,
-         * a Raster representing data values, and (optionally) a Raster representing weights.
-         * and a set of raster values.
+         * Compute raster statistics from a Raster representing intersection
+         * percentages, a Raster representing data values, and (optionally) a
+         * Raster representing weights. and a set of raster values.
          */
-        explicit RasterStats(bool store_values = false) :
-                m_min{std::numeric_limits<T>::max()},
-                m_max{std::numeric_limits<T>::lowest()},
-                m_sum_ciwi{0},
-                m_sum_ci{0},
-                m_sum_xici{0},
-                m_sum_xiciwi{0},
-                m_store_values{store_values} {}
+        explicit RasterStats(bool store_values = false,
+                             float old_count_threshold = 0.0)
+            : m_min{std::numeric_limits<T>::max()},
+              m_max{std::numeric_limits<T>::lowest()},
+              m_count_old{0},  // count how many pixels overlap with the polygon
+              m_hitcount_old{0},  // count how many pixels overlap with the
+                                  // polygon and have a value > 0
+              m_counted_sum{
+                  0},  // the sum of all pixels that were counted as overlapping
+              m_sum_ciwi{0},
+              m_sum_ci{0},
+              m_sum_xici{0},
+              m_sum_xiciwi{0},
+              m_store_values{store_values},
+              m_old_count_threshold(old_count_threshold) {
+        }
 
-        void process(const Raster<float> & intersection_percentages, const AbstractRaster<T> & rast) {
+        void process(const Raster<float> &intersection_percentages,
+                     const AbstractRaster<T> &rast) {
             std::unique_ptr<AbstractRaster<T>> rvp;
 
             if (rast.grid() != intersection_percentages.grid()) {
-                rvp = std::make_unique<RasterView<T>>(rast, intersection_percentages.grid());
+                rvp = std::make_unique<RasterView<T>>(
+                    rast, intersection_percentages.grid());
             }
 
-            const AbstractRaster<T>& rv = rvp ? *rvp : rast;
+            const AbstractRaster<T> &rv = rvp ? *rvp : rast;
 
             for (size_t i = 0; i < rv.rows(); i++) {
                 for (size_t j = 0; j < rv.cols(); j++) {
                     float pct_cov = intersection_percentages(i, j);
                     T val;
-                    if (pct_cov > 0 && rv.get(i, j, val)) {
-                        process_value(val, pct_cov, 1.0);
+                    if (pct_cov > 0) {
+                        process_value(val, pct_cov, 1.0, rv.get(i, j, val));
                     }
                 }
             }
         }
 
-        void process(const Raster<float> & intersection_percentages, const AbstractRaster<T> & rast, const AbstractRaster<T> & weights) {
-            // Process the entire intersection_percentages grid, even though it may
-            // be outside the extent of the weighting raster. Although we've been
-            // provided a weighting raster, we still need to calculate correct values
-            // for unweighted stats.
-            auto& common = intersection_percentages.grid();
+        void process(const Raster<float> &intersection_percentages,
+                     const AbstractRaster<T> &rast,
+                     const AbstractRaster<T> &weights) {
+            // Process the entire intersection_percentages grid, even though it
+            // may be outside the extent of the weighting raster. Although we've
+            // been provided a weighting raster, we still need to calculate
+            // correct values for unweighted stats.
+            auto &common = intersection_percentages.grid();
 
             if (common.empty())
                 return;
 
-            // If the value or weights grids do not correspond to the intersection_percentages grid,
-            // construct a RasterView to perform the transformation. Even a no-op RasterView can be
-            // expensive, so we avoid doing this unless necessary.
+            // If the value or weights grids do not correspond to the
+            // intersection_percentages grid, construct a RasterView to perform
+            // the transformation. Even a no-op RasterView can be expensive, so
+            // we avoid doing this unless necessary.
             std::unique_ptr<AbstractRaster<T>> rvp;
             std::unique_ptr<AbstractRaster<T>> wvp;
 
@@ -89,34 +101,48 @@ namespace exactextract {
                 wvp = std::make_unique<RasterView<T>>(weights, common);
             }
 
-            const AbstractRaster<T>& rv = rvp ? *rvp : rast;
-            const AbstractRaster<T>& wv = wvp ? *wvp : weights;
+            const AbstractRaster<T> &rv = rvp ? *rvp : rast;
+            const AbstractRaster<T> &wv = wvp ? *wvp : weights;
 
             for (size_t i = 0; i < rv.rows(); i++) {
                 for (size_t j = 0; j < rv.cols(); j++) {
                     float pct_cov = intersection_percentages(i, j);
                     T weight;
                     T val;
-
-                    if (pct_cov > 0 && rv.get(i, j, val)) {
+                    bool has_value = rv.get(i, j, val);
+                    if (pct_cov > 0) {
                         if (wv.get(i, j, weight)) {
-                            process_value(val, pct_cov, weight);
+                            process_value(val, pct_cov, weight, has_value);
                         } else {
                             // Weight is NODATA, convert to NAN
-                            process_value(val, pct_cov, std::numeric_limits<double>::quiet_NaN());
+                            process_value(
+                                val, pct_cov,
+                                std::numeric_limits<double>::quiet_NaN(),
+                                has_value);
                         }
                     }
                 }
             }
         }
 
-        void process_value(const T& val, float coverage, double weight) {
+        void process_value(const T &val, float coverage, double weight,
+                           bool has_value = true) {
+            if (coverage >= m_old_count_threshold) {
+                m_count_old += 1;
+                if (has_value && val > 0.0) {
+                    m_hitcount_old += 1;
+                    m_counted_sum += static_cast<double>(val);
+                }
+            }
+            if (!has_value)
+                return;
+
             m_sum_ci += static_cast<double>(coverage);
-            m_sum_xici += val*static_cast<double>(coverage);
+            m_sum_xici += val * static_cast<double>(coverage);
 
             m_variance.process(val, coverage);
 
-            double ciwi = static_cast<double>(coverage)*weight;
+            double ciwi = static_cast<double>(coverage) * weight;
             m_sum_ciwi += ciwi;
             m_sum_xiciwi += val * ciwi;
 
@@ -131,7 +157,7 @@ namespace exactextract {
             }
 
             if (m_store_values) {
-                auto& entry = m_freq[val];
+                auto &entry = m_freq[val];
                 entry.m_sum_ci += static_cast<double>(coverage);
                 entry.m_sum_ciwi += ciwi;
                 m_quantiles.reset();
@@ -151,21 +177,21 @@ namespace exactextract {
          * by the percent of the cell that is covered and a secondary
          * weighting raster.
          *
-         * If any weights are undefined, will return NAN. If this is undesirable,
-         * caller should replace undefined weights with a suitable default
-         * before computing statistics.
+         * If any weights are undefined, will return NAN. If this is
+         * undesirable, caller should replace undefined weights with a suitable
+         * default before computing statistics.
          */
-         float weighted_mean() const {
-             return weighted_sum() / weighted_count();
-         }
+        float weighted_mean() const {
+            return weighted_sum() / weighted_count();
+        }
 
-         /** The fraction of weighted cells to unweighted cells.
-          *  Meaningful only when the values of the weighting
-          *  raster are between 0 and 1.
-          */
-         float weighted_fraction() const {
-             return weighted_sum() / sum();
-         }
+        /** The fraction of weighted cells to unweighted cells.
+         *  Meaningful only when the values of the weighting
+         *  raster are between 0 and 1.
+         */
+        float weighted_fraction() const {
+            return weighted_sum() / sum();
+        }
 
         /**
          * The raster value occupying the greatest number of cells
@@ -178,11 +204,14 @@ namespace exactextract {
                 return nonstd::nullopt;
             }
 
-            return std::max_element(m_freq.cbegin(),
-                                    m_freq.cend(),
-                                    [](const auto &a, const auto &b) {
-                                        return a.second.m_sum_ci < b.second.m_sum_ci || (a.second.m_sum_ci == b.second.m_sum_ci && a.first < b.first);
-                                    })->first;
+            return std::max_element(
+                       m_freq.cbegin(), m_freq.cend(),
+                       [](const auto &a, const auto &b) {
+                           return a.second.m_sum_ci < b.second.m_sum_ci ||
+                                  (a.second.m_sum_ci == b.second.m_sum_ci &&
+                                   a.first < b.first);
+                       })
+                ->first;
         }
 
         /**
@@ -217,11 +246,12 @@ namespace exactextract {
             }
 
             // The weighted quantile computation is not processed incrementally.
-            // Create it on demand and retain it in case we want multiple quantiles.
+            // Create it on demand and retain it in case we want multiple
+            // quantiles.
             if (!m_quantiles) {
                 m_quantiles = std::make_unique<WeightedQuantiles>();
 
-                for (const auto& entry : m_freq) {
+                for (const auto &entry : m_freq) {
                     m_quantiles->process(entry.first, entry.second.m_sum_ci);
                 }
             }
@@ -234,28 +264,50 @@ namespace exactextract {
          * value weighted by its coverage fraction.
          */
         float sum() const {
-            return (float) m_sum_xici;
+            return (float)m_sum_xici;
         }
 
         /**
          * The sum of raster cells covered by the polygon, with each raster
          * value weighted by its coverage fraction and weighting raster value.
          *
-         * If any weights are undefined, will return NAN. If this is undesirable,
-         * caller should replace undefined weights with a suitable default
-         * before computing statistics.
+         * If any weights are undefined, will return NAN. If this is
+         * undesirable, caller should replace undefined weights with a suitable
+         * default before computing statistics.
          */
         float weighted_sum() const {
-            return (float) m_sum_xiciwi;
+            return (float)m_sum_xiciwi;
         }
 
         /**
-         * The number of raster cells with any defined value
+         * The number of raster cells touching the polygon with a value > 0
+         */
+        std::size_t rawhitcount() const {
+            return (std::size_t)m_hitcount_old;
+        }
+
+        /**
+         * The number of raster cells touched by the polygon. Weights are not
+         * taken into account.
+         */
+        std::size_t rawcount() const {
+            return (std::size_t)m_count_old;
+        }
+
+        /**
+         * The sum of raster cells counted in rawcount
+         */
+        float rawsum() const {
+            return (float)m_counted_sum;
+        }
+
+        /**
+         * The number of raster cells touched by the with any defined value
          * covered by the polygon. Weights are not taken
          * into account.
          */
         float count() const {
-            return (float) m_sum_ci;
+            return (float)m_sum_ci;
         }
 
         /**
@@ -263,8 +315,8 @@ namespace exactextract {
          * covered by the polygon. Weights are not taken
          * into account.
          */
-        nonstd::optional<float> count(const T& value) const {
-            const auto& entry = m_freq.find(value);
+        nonstd::optional<float> count(const T &value) const {
+            const auto &entry = m_freq.find(value);
 
             if (entry == m_freq.end()) {
                 return nonstd::nullopt;
@@ -278,7 +330,7 @@ namespace exactextract {
          * a value that equals the specified value.
          * Weights are not taken into account.
          */
-        nonstd::optional<float> frac(const T& value) const {
+        nonstd::optional<float> frac(const T &value) const {
             auto count_for_value = count(value);
 
             if (!count_for_value.has_value()) {
@@ -289,11 +341,11 @@ namespace exactextract {
         }
 
         /**
-         * The weighted fraction of defined raster cells covered by the polygon with
-         * a value that equals the specified value.
-         * Weights are not taken into account.
+         * The weighted fraction of defined raster cells covered by the polygon
+         * with a value that equals the specified value. Weights are not taken
+         * into account.
          */
-        nonstd::optional<float> weighted_frac(const T& value) const {
+        nonstd::optional<float> weighted_frac(const T &value) const {
             auto count_for_value = weighted_count(value);
 
             if (!count_for_value.has_value()) {
@@ -355,25 +407,25 @@ namespace exactextract {
          * polygon, with each weight multiplied by the coverage
          * coverage fraction of each cell.
          *
-         * If any weights are undefined, will return NAN. If this is undesirable,
-         * caller should replace undefined weights with a suitable default
-         * before computing statistics.
+         * If any weights are undefined, will return NAN. If this is
+         * undesirable, caller should replace undefined weights with a suitable
+         * default before computing statistics.
          */
         float weighted_count() const {
-            return (float) m_sum_ciwi;
+            return (float)m_sum_ciwi;
         }
 
         /**
          * The sum of weights for each cell of a specific value covered by the
-         * polygon, with each weight multiplied by the coverage coverage fraction
-         * of each cell.
+         * polygon, with each weight multiplied by the coverage coverage
+         * fraction of each cell.
          *
-         * If any weights are undefined, will return NAN. If this is undesirable,
-         * caller should replace undefined weights with a suitable default
-         * before computing statistics.
+         * If any weights are undefined, will return NAN. If this is
+         * undesirable, caller should replace undefined weights with a suitable
+         * default before computing statistics.
          */
-        nonstd::optional<float> weighted_count(const T& value) const {
-            const auto& entry = m_freq.find(value);
+        nonstd::optional<float> weighted_count(const T &value) const {
+            const auto &entry = m_freq.find(value);
 
             if (entry == m_freq.end()) {
                 return nonstd::nullopt;
@@ -395,11 +447,14 @@ namespace exactextract {
                 return nonstd::nullopt;
             }
 
-            return std::min_element(m_freq.cbegin(),
-                                    m_freq.cend(),
-                                    [](const auto &a, const auto &b) {
-                                        return a.second.m_sum_ci < b.second.m_sum_ci || (a.second.m_sum_ci == b.second.m_sum_ci && a.first < b.first);
-                                    })->first;
+            return std::min_element(
+                       m_freq.cbegin(), m_freq.cend(),
+                       [](const auto &a, const auto &b) {
+                           return a.second.m_sum_ci < b.second.m_sum_ci ||
+                                  (a.second.m_sum_ci == b.second.m_sum_ci &&
+                                   a.first < b.first);
+                       })
+                ->first;
         }
 
         /**
@@ -421,6 +476,9 @@ namespace exactextract {
         // ci: coverage fraction of pixel i
         // wi: weight of pixel i
         // xi: value of pixel i
+        uint m_count_old;      // count of all touched pixels
+        uint m_hitcount_old;   // count of touched pixels with value > 0
+        double m_counted_sum;  // sum of all touched pixels
         double m_sum_ciwi;
         double m_sum_ci;
         double m_sum_xici;
@@ -437,17 +495,19 @@ namespace exactextract {
         std::unordered_map<T, ValueFreqEntry> m_freq;
 
         bool m_store_values;
+        float m_old_count_threshold;
 
         struct Iterator {
             using iterator_category = std::forward_iterator_tag;
             using difference_type = std::ptrdiff_t;
             using value_type = const T;
-            using pointer = value_type*;
-            using reference = value_type&;
+            using pointer = value_type *;
+            using reference = value_type &;
 
             using underlying_iterator = decltype(m_freq.cbegin());
 
-            Iterator(underlying_iterator it) : m_iterator(it) {}
+            Iterator(underlying_iterator it) : m_iterator(it) {
+            }
 
             reference operator*() const {
                 return m_iterator->first;
@@ -458,7 +518,7 @@ namespace exactextract {
             }
 
             // prefix
-            Iterator& operator++() {
+            Iterator &operator++() {
                 m_iterator++;
                 return *this;
             }
@@ -470,10 +530,10 @@ namespace exactextract {
                 return tmp;
             }
 
-            friend bool operator==(const Iterator& a, const Iterator& b) {
+            friend bool operator==(const Iterator &a, const Iterator &b) {
                 return a.m_iterator == b.m_iterator;
             }
-            friend bool operator!=(const Iterator& a, const Iterator& b) {
+            friend bool operator!=(const Iterator &a, const Iterator &b) {
                 return !(a == b);
             }
 
@@ -489,11 +549,10 @@ namespace exactextract {
         Iterator end() const {
             return Iterator(m_freq.cend());
         }
-
     };
 
-    template<typename T>
-    std::ostream& operator<<(std::ostream& os, const RasterStats<T> & stats) {
+    template <typename T>
+    std::ostream &operator<<(std::ostream &os, const RasterStats<T> &stats) {
         os << "{" << std::endl;
         os << "  \"count\" : " << stats.count() << "," << std::endl;
 
@@ -515,7 +574,8 @@ namespace exactextract {
 
         os << "  \"mean\" : " << stats.mean() << "," << std::endl;
         os << "  \"sum\" : " << stats.sum() << "," << std::endl;
-        os << "  \"weighted_mean\" : " << stats.weighted_mean() << "," << std::endl;
+        os << "  \"weighted_mean\" : " << stats.weighted_mean() << ","
+           << std::endl;
         os << "  \"weighted_sum\" : " << stats.weighted_sum();
         if (stats.stores_values()) {
             os << "," << std::endl;
@@ -543,7 +603,6 @@ namespace exactextract {
         return os;
     }
 
-
-}
+}  // namespace exactextract
 
 #endif

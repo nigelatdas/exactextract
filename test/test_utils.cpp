@@ -1,5 +1,4 @@
 #include "catch.hpp"
-
 #include "utils.h"
 
 using exactextract::parse_dataset_descriptor;
@@ -11,8 +10,8 @@ TEST_CASE("Parsing feature descriptor: no layer specified") {
 
     auto parsed = parse_dataset_descriptor(descriptor);
 
-    CHECK( parsed.first == "countries.shp" );
-    CHECK( parsed.second == "0" );
+    CHECK(parsed.first == "countries.shp");
+    CHECK(parsed.second == "0");
 }
 
 TEST_CASE("Parsing feature descriptor with layer") {
@@ -20,8 +19,8 @@ TEST_CASE("Parsing feature descriptor with layer") {
 
     auto parsed = parse_dataset_descriptor(descriptor);
 
-    CHECK( parsed.first == "PG:dbname=postgres port=5432" );
-    CHECK( parsed.second == "countries" );
+    CHECK(parsed.first == "PG:dbname=postgres port=5432");
+    CHECK(parsed.second == "countries");
 }
 
 TEST_CASE("Parsing raster descriptor: file with name and band") {
@@ -29,9 +28,9 @@ TEST_CASE("Parsing raster descriptor: file with name and band") {
 
     auto parsed = parse_raster_descriptor(descriptor);
 
-    CHECK( std::get<0>(parsed) == "pop" );
-    CHECK( std::get<1>(parsed) == "gpw_v4.tif" );
-    CHECK( std::get<2>(parsed) == 27 );
+    CHECK(std::get<0>(parsed) == "pop");
+    CHECK(std::get<1>(parsed) == "gpw_v4.tif");
+    CHECK(std::get<2>(parsed) == 27);
 }
 
 TEST_CASE("Parsing raster descriptor: file with no band") {
@@ -39,9 +38,9 @@ TEST_CASE("Parsing raster descriptor: file with no band") {
 
     auto parsed = parse_raster_descriptor(descriptor);
 
-    CHECK( std::get<0>(parsed) == "land_area" );
-    CHECK( std::get<1>(parsed) == "gpw_v4_land.tif" );
-    CHECK( std::get<2>(parsed) == 1 );
+    CHECK(std::get<0>(parsed) == "land_area");
+    CHECK(std::get<1>(parsed) == "gpw_v4_land.tif");
+    CHECK(std::get<2>(parsed) == 1);
 }
 
 TEST_CASE("Parsing raster descriptor: file with no name and no band") {
@@ -49,9 +48,9 @@ TEST_CASE("Parsing raster descriptor: file with no name and no band") {
 
     auto parsed = parse_raster_descriptor(descriptor);
 
-    CHECK( std::get<0>(parsed) == "gpw_v4_land.tif" );
-    CHECK( std::get<1>(parsed) == "gpw_v4_land.tif" );
-    CHECK( std::get<2>(parsed) == 1 );
+    CHECK(std::get<0>(parsed) == "gpw_v4_land.tif");
+    CHECK(std::get<1>(parsed) == "gpw_v4_land.tif");
+    CHECK(std::get<2>(parsed) == 1);
 }
 
 TEST_CASE("Parsing raster descriptor: file with no name but a specific band") {
@@ -59,9 +58,9 @@ TEST_CASE("Parsing raster descriptor: file with no name but a specific band") {
 
     auto parsed = parse_raster_descriptor(descriptor);
 
-    CHECK( std::get<0>(parsed) == "gpw_v4_land.tif" );
-    CHECK( std::get<1>(parsed) == "gpw_v4_land.tif" );
-    CHECK( std::get<2>(parsed) == 8 );
+    CHECK(std::get<0>(parsed) == "gpw_v4_land.tif");
+    CHECK(std::get<1>(parsed) == "gpw_v4_land.tif");
+    CHECK(std::get<2>(parsed) == 8);
 }
 
 TEST_CASE("Parsing ugly raster descriptor") {
@@ -69,44 +68,57 @@ TEST_CASE("Parsing ugly raster descriptor") {
 
     auto parsed = parse_raster_descriptor(descriptor);
 
-    CHECK( std::get<0>(parsed) == "gpw[3]" );
-    CHECK( std::get<1>(parsed) == "gpw_v4_land.tif" );
-    CHECK( std::get<2>(parsed) == 1 );
+    CHECK(std::get<0>(parsed) == "gpw[3]");
+    CHECK(std::get<1>(parsed) == "gpw_v4_land.tif");
+    CHECK(std::get<2>(parsed) == 1);
 }
 
 TEST_CASE("Degenerate raster descriptor") {
-    CHECK_THROWS_WITH( parse_raster_descriptor(""), "Empty descriptor." );
-    CHECK_THROWS_WITH( parse_raster_descriptor(":"), "Descriptor has no filename." );
+    CHECK_THROWS_WITH(parse_raster_descriptor(""), "Empty descriptor.");
+    CHECK_THROWS_WITH(parse_raster_descriptor(":"),
+                      "Descriptor has no filename.");
 }
 
 TEST_CASE("Parsing stat descriptor with no weighting") {
     auto descriptor = parse_stat_descriptor("sum(population)");
 
-    CHECK( descriptor.name == "population_sum" );
-    CHECK( descriptor.stat == "sum" );
-    CHECK( descriptor.values == "population" );
-    CHECK( descriptor.weights == "" );
+    CHECK(descriptor.name == "population_sum");
+    CHECK(descriptor.stat == "sum");
+    CHECK(descriptor.values == "population");
+    CHECK(descriptor.weights == "");
+}
+
+TEST_CASE("Parsing stat descriptor with coverage threshold") {
+    auto descriptor = parse_stat_descriptor("rawsum(population:0.1)");
+
+    CHECK(descriptor.name == "population_rawsum");
+    CHECK(descriptor.stat == "rawsum");
+    CHECK(descriptor.values == "population");
+    CHECK(descriptor.weights == "");
+    CHECK(descriptor.coverage_threshold == 0.1);
 }
 
 TEST_CASE("Parsing stat descriptor with weighting") {
     auto descriptor = parse_stat_descriptor("mean(deficit,population)");
 
-    CHECK( descriptor.name == "deficit_mean_population" );
-    CHECK( descriptor.stat == "mean" );
-    CHECK( descriptor.values == "deficit" );
-    CHECK( descriptor.weights == "population" );
+    CHECK(descriptor.name == "deficit_mean_population");
+    CHECK(descriptor.stat == "mean");
+    CHECK(descriptor.values == "deficit");
+    CHECK(descriptor.weights == "population");
 }
 
 TEST_CASE("Parsing stat descriptor with name and weighting") {
-    auto descriptor = parse_stat_descriptor("pop_weighted_mean_deficit=mean(deficit,population)");
+    auto descriptor = parse_stat_descriptor(
+        "pop_weighted_mean_deficit=mean(deficit,population)");
 
-    CHECK( descriptor.name == "pop_weighted_mean_deficit" );
-    CHECK( descriptor.stat == "mean" );
-    CHECK( descriptor.values == "deficit" );
-    CHECK( descriptor.weights == "population" );
+    CHECK(descriptor.name == "pop_weighted_mean_deficit");
+    CHECK(descriptor.stat == "mean");
+    CHECK(descriptor.values == "deficit");
+    CHECK(descriptor.weights == "population");
 }
 
 TEST_CASE("Parsing degenerate stat descriptors") {
-    CHECK_THROWS_WITH( parse_stat_descriptor(""), "Invalid stat descriptor." );
-    CHECK_THROWS_WITH( parse_stat_descriptor("sum()"), "Invalid stat descriptor." );
+    CHECK_THROWS_WITH(parse_stat_descriptor(""), "Invalid stat descriptor.");
+    CHECK_THROWS_WITH(parse_stat_descriptor("sum()"),
+                      "Invalid stat descriptor.");
 }

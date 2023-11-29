@@ -1,9 +1,10 @@
 // Copyright (c) 2019 ISciences, LLC.
 // All rights reserved.
 //
-// This software is licensed under the Apache License, Version 2.0 (the "License").
-// You may not use this file except in compliance with the License. You may
-// obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0.
+// This software is licensed under the Apache License, Version 2.0 (the
+// "License"). You may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// http://www.apache.org/licenses/LICENSE-2.0.
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -28,23 +29,28 @@ namespace exactextract {
         std::string weights;
         std::string stat;
         std::vector<double> quantiles;
+        double coverage_threshold;
     };
 
-    std::pair<std::string, std::string> parse_dataset_descriptor(const std::string &descriptor);
-    std::tuple<std::string, std::string, int> parse_raster_descriptor(const std::string &descriptor);
-    StatDescriptor parse_stat_descriptor(const std::string & descriptor);
+    std::pair<std::string, std::string> parse_dataset_descriptor(
+        const std::string &descriptor);
+    std::tuple<std::string, std::string, int> parse_raster_descriptor(
+        const std::string &descriptor);
+    StatDescriptor parse_stat_descriptor(const std::string &descriptor);
 
     // https://stackoverflow.com/a/2072890
-    inline bool ends_with(std::string const & value, std::string const & suffix) {
-        if (suffix.size() > value.size()) return false;
+    inline bool ends_with(std::string const &value, std::string const &suffix) {
+        if (suffix.size() > value.size())
+            return false;
         return std::equal(suffix.rbegin(), suffix.rend(), value.rbegin());
     }
 
-    inline bool starts_with(std::string const & value, std::string const & prefix) {
-        if (prefix.size() > value.size()) return false;
+    inline bool starts_with(std::string const &value,
+                            std::string const &prefix) {
+        if (prefix.size() > value.size())
+            return false;
         return std::equal(prefix.cbegin(), prefix.cend(), value.cbegin());
     }
-}
+}  // namespace exactextract
 
-
-#endif //EXACTEXTRACT_UTILS_H
+#endif  // EXACTEXTRACT_UTILS_H
