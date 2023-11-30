@@ -38,7 +38,7 @@ namespace exactextract {
     public:
         Operation(std::string p_stat, std::string p_name,
                   RasterSource* p_values, RasterSource* p_weights = nullptr,
-                  double p_coverage_threshold = 0.0)
+                  float p_coverage_threshold = 0.0)
             : stat{std::move(p_stat)},
               name{std::move(p_name)},
               values{p_values},
@@ -94,7 +94,7 @@ namespace exactextract {
 
         virtual void set_result(const StatsRegistry& reg,
                                 const std::string& fid, Feature& f_out) const {
-            RasterStats<double> defaultStat = RasterStats<double>();
+            RasterStats<double> defaultStat = RasterStats<double>(0.0f);
 
             const RasterStats<double>& stats = (reg.contains(fid, *this))
                                                    ? reg.stats(fid, *this)
@@ -165,7 +165,7 @@ namespace exactextract {
         std::string name;
         RasterSource* values;
         RasterSource* weights;
-        double coverage_threshold;
+        float coverage_threshold;
 
     private:
         std::string m_key;

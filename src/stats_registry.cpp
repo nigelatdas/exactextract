@@ -23,17 +23,14 @@ namespace exactextract {
                                               const Operation& op,
                                               bool store_values) {
         // TODO come up with a better storage method.
-        auto& stats_for_feature = m_feature_stats[feature];
-
-        // can't use find because this requires RasterStats to be
-        // copy-constructible before C++ 17
-        auto exists = stats_for_feature.count(op.key());
-        if (!exists) {
-            // can't use emplace because this requires RasterStats be
-            // copy-constructible before C++17
-            RasterStats<double> new_stats(store_values, op.coverage_threshold);
-            stats_for_feature[op.key()] = std::move(new_stats);
+        if (contains(feature, op)) {
+            return m_feature_stats.at(feature).at(op.key());
         }
+
+        auto& stats_for_feature = m_feature_stats.at(feature);
+
+        RasterStats<double> new_stats(op.coverage_threshold, store_values);
+        stats_for_feature[op.key()] = std::move(new_stats);
 
         return stats_for_feature[op.key()];
     }

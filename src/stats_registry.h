@@ -70,6 +70,9 @@ namespace exactextract {
             });
         }
 
+        template <typename T>
+        void add(const std::string &name, const T &value);
+
     private:
         std::unordered_map<std::string,
                            std::unordered_map<std::string, RasterStats<double>>>

@@ -35,8 +35,8 @@ namespace exactextract {
          * percentages, a Raster representing data values, and (optionally) a
          * Raster representing weights. and a set of raster values.
          */
-        explicit RasterStats(bool store_values = false,
-                             float old_count_threshold = 0.0)
+        explicit RasterStats(float old_count_threshold,
+                             bool store_values = false)
             : m_min{std::numeric_limits<T>::max()},
               m_max{std::numeric_limits<T>::lowest()},
               m_count_old{0},  // count how many pixels overlap with the polygon
