@@ -22,17 +22,16 @@ namespace exactextract {
     RasterStats<double>& StatsRegistry::stats(const std::string& feature,
                                               const Operation& op,
                                               bool store_values) {
-        // TODO come up with a better storage method.
         if (contains(feature, op)) {
             return m_feature_stats.at(feature).at(op.key());
         }
 
-        auto& stats_for_feature = m_feature_stats.at(feature);
+        auto& stats_for_feature = m_feature_stats[feature];
 
         RasterStats<double> new_stats(op.coverage_threshold, store_values);
-        stats_for_feature[op.key()] = std::move(new_stats);
+        stats_for_feature.insert({op.key(), std::move(new_stats)});
 
-        return stats_for_feature[op.key()];
+        return stats_for_feature.at(op.key());
     }
 
     bool StatsRegistry::contains(const std::string& feature,

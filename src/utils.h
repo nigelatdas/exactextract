@@ -29,7 +29,7 @@ namespace exactextract {
         std::string weights;
         std::string stat;
         std::vector<double> quantiles;
-        double coverage_threshold;
+        float coverage_threshold;
     };
 
     std::pair<std::string, std::string> parse_dataset_descriptor(

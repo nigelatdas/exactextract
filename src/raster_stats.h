@@ -127,9 +127,11 @@ namespace exactextract {
 
         void process_value(const T &val, float coverage, double weight,
                            bool has_value = true) {
+            // output coverage
+
             if (coverage >= m_old_count_threshold) {
                 m_count_old += 1;
-                if (has_value && val > 0.0) {
+                if (has_value) {
                     m_hitcount_old += 1;
                     m_counted_sum += static_cast<double>(val);
                 }

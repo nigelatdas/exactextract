@@ -71,7 +71,7 @@ namespace exactextract {
                                 extent};
         values.set_nodata(NA);
 
-        RasterStats<TestType> stats{true, 0.3};
+        RasterStats<TestType> stats{0.3, true};
         stats.process(areas, values);
 
         CHECK(stats.count() ==
@@ -119,7 +119,7 @@ namespace exactextract {
         fill_by_row<TestType>(values, 1, 1);
         fill_by_row<TestType>(weights, 5, 5);
 
-        RasterStats<TestType> stats(false);
+        RasterStats<TestType> stats(0.0, false);
         stats.process(areas, values, weights);
 
         std::valarray<double> cov_values = {28, 29, 30, 31, 36, 37, 38, 39};
@@ -176,7 +176,7 @@ namespace exactextract {
         SECTION("All values missing, no weights provided") {
             // Example application: land cover on an island not covered by
             // dataset
-            RasterStats<TestType> stats(false);
+            RasterStats<TestType> stats(0.0, false);
             stats.process(areas, all_values_missing);
 
             CHECK(stats.count() == 0);
@@ -200,7 +200,7 @@ namespace exactextract {
         SECTION("All values defined, no weights provided") {
             // Example application: precipitation over polygon in the middle of
             // continent
-            RasterStats<TestType> stats{true};
+            RasterStats<TestType> stats{0.0, true};
             stats.process(areas, all_values_defined);
 
             CHECK(stats.count() == 1.0f);
@@ -222,7 +222,7 @@ namespace exactextract {
 
         SECTION("Some values defined, no weights provided") {
             // Example application: precipitation at edge of continent
-            RasterStats<TestType> stats{true};
+            RasterStats<TestType> stats{0.0, true};
             stats.process(areas, some_values_defined);
 
             CHECK(stats.count() == 0.5f);
@@ -245,7 +245,7 @@ namespace exactextract {
         SECTION("No values defined, all weights defined") {
             // Example: population-weighted temperature in dataset covered by
             // pop but without temperature data
-            RasterStats<TestType> stats{true};
+            RasterStats<TestType> stats{0.0, true};
             stats.process(areas, all_values_missing, all_values_defined);
 
             CHECK(stats.count() == 0);
@@ -264,7 +264,7 @@ namespace exactextract {
         }
 
         SECTION("No values defined, no weights defined") {
-            RasterStats<TestType> stats{true};
+            RasterStats<TestType> stats{0.0, true};
             stats.process(areas, all_values_missing, all_values_missing);
 
             CHECK(stats.count() == 0);
@@ -285,7 +285,7 @@ namespace exactextract {
         SECTION("All values defined, no weights defined") {
             // Example: population-weighted temperature in polygon covered by
             // temperature but without pop data
-            RasterStats<TestType> stats{true};
+            RasterStats<TestType> stats{0.0, true};
             stats.process(areas, all_values_defined, all_values_missing);
 
             CHECK(stats.count() == 1.0f);
@@ -304,7 +304,7 @@ namespace exactextract {
         }
 
         SECTION("All values defined, some weights defined") {
-            RasterStats<TestType> stats{true};
+            RasterStats<TestType> stats{0.0, true};
             stats.process(areas, all_values_defined, some_values_defined);
 
             CHECK(stats.count() == 1.0f);
@@ -328,7 +328,7 @@ namespace exactextract {
         std::vector<float> coverage = {0.5, 0.4, 0, 0.3, 0.3, 0.2};
         std::vector<double> weight = {0.3, 0.4, 1, 4.0, 3.0, 0};
 
-        RasterStats<decltype(landcov)::value_type> stats{true};
+        RasterStats<decltype(landcov)::value_type> stats{0.0, true};
 
         for (std::size_t i = 0; i < landcov.size(); i++) {
             stats.process_value(landcov[i], coverage[i], weight[i]);
@@ -359,7 +359,7 @@ namespace exactextract {
         std::vector<int> values = {1, 3, 2};
         std::vector<float> cov = {1.0, 2.0, 0.0};
 
-        RasterStats<decltype(values)::value_type> stats{true};
+        RasterStats<decltype(values)::value_type> stats{0.5, true};
 
         for (std::size_t i = 0; i < values.size(); i++) {
             stats.process_value(values[i], cov[i], 1.0);
@@ -378,8 +378,8 @@ namespace exactextract {
               "inside value raster but outside weighting raster") {
         GEOSContextHandle_t context = init_geos();
 
-        RasterStats<double> weighted_stats{true};
-        RasterStats<double> unweighted_stats{true};
+        RasterStats<double> weighted_stats{0.0, true};
+        RasterStats<double> unweighted_stats{0.0, true};
 
         Grid<bounded_extent> values_grid{{0, 0, 5, 5}, 1, 1};   // 5x5 grid
         Grid<bounded_extent> weights_grid{{0, 2, 5, 5}, 1, 1};  // 3x3 grid

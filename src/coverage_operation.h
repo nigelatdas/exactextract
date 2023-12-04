@@ -39,8 +39,10 @@ namespace exactextract {
         };
 
         CoverageOperation(const std::string& p_name, RasterSource* p_values,
-                          RasterSource* p_weights, Options options)
-            : Operation("coverage", p_name, p_values, p_weights),
+                          float p_coverage_threshold, RasterSource* p_weights,
+                          Options options)
+            : Operation("coverage", p_name, p_coverage_threshold, p_values,
+                        p_weights),
               m_coverage_opts(options) {
             m_field_names.clear();
 

@@ -91,11 +91,11 @@ TEST_CASE("Parsing stat descriptor with no weighting") {
 TEST_CASE("Parsing stat descriptor with coverage threshold") {
     auto descriptor = parse_stat_descriptor("rawsum(population:0.1)");
 
-    CHECK(descriptor.name == "population_rawsum");
+    CHECK(descriptor.name == "population_rawsum_0.1");
     CHECK(descriptor.stat == "rawsum");
     CHECK(descriptor.values == "population");
     CHECK(descriptor.weights == "");
-    CHECK(descriptor.coverage_threshold == 0.1);
+    CHECK(descriptor.coverage_threshold == 0.1f);
 }
 
 TEST_CASE("Parsing stat descriptor with weighting") {

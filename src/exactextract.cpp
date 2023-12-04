@@ -249,11 +249,13 @@ static std::vector<std::unique_ptr<Operation>> prepare_operations(
         if (stat.stat == "coverage") {
             found_coverage = true;
             ops.emplace_back(std::make_unique<exactextract::CoverageOperation>(
-                stat.name, values, weights, coverage_opts));
+                stat.name, values, stat.coverage_threshold, weights,
+                coverage_opts));
         } else {
             found_stat = true;
-            ops.emplace_back(std::make_unique<Operation>(stat.stat, stat.name,
-                                                         values, weights));
+            ops.emplace_back(std::make_unique<Operation>(
+                stat.stat, stat.name, stat.coverage_threshold, values,
+                weights));
         }
 
         if (found_coverage && found_stat) {

@@ -1,9 +1,10 @@
 // Copyright (c) 2023 ISciences, LLC.
 // All rights reserved.
 //
-// This software is licensed under the Apache License, Version 2.0 (the "License").
-// You may not use this file except in compliance with the License. You may
-// obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0.
+// This software is licensed under the Apache License, Version 2.0 (the
+// "License"). You may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// http://www.apache.org/licenses/LICENSE-2.0.
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -11,9 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <chrono>
 #include <gdal.h>
 #include <geos_c.h>
+
+#include <chrono>
 
 #include "CLI11.hpp"
 #include "grid.h"
@@ -31,11 +33,16 @@ int main(int argc, char** argv) {
     std::string dst;
     std::string output_driver;
 
-    CLI::App app{"Polygon subdivision using exactextract: version " + exactextract::version()};
+    CLI::App app{"Polygon subdivision using exactextract: version " +
+                 exactextract::version()};
 
     app.add_option("--te", te, "grid extent")->required(true)->delimiter(' ');
-    app.add_option("--tr", tr, "grid resolution")->required(true)->delimiter(' ');
-    app.add_option("-f", output_driver, "output driver")->required(false)->default_val("ESRI Shapefile");
+    app.add_option("--tr", tr, "grid resolution")
+        ->required(true)
+        ->delimiter(' ');
+    app.add_option("-f", output_driver, "output driver")
+        ->required(false)
+        ->default_val("ESRI Shapefile");
     app.add_option("src", src, "src")->required(true);
     app.add_option("dst", dst, "dst")->required(true);
 
@@ -47,7 +54,8 @@ int main(int argc, char** argv) {
 
     GDALAllRegister();
 
-    GDALDatasetH ds = GDALOpenEx(src.c_str(), GDAL_OF_VECTOR, nullptr, nullptr, nullptr);
+    GDALDatasetH ds =
+        GDALOpenEx(src.c_str(), GDAL_OF_VECTOR, nullptr, nullptr, nullptr);
     OGRLayerH lyr = GDALDatasetGetLayer(ds, 0);
     OGRSpatialReferenceH srs = OGR_L_GetSpatialRef(lyr);
 
@@ -57,9 +65,11 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    OGRDataSourceH ds_out = GDALCreate(dstDriver, dst.c_str(), 0, 0, 0, GDT_Unknown, nullptr);
+    OGRDataSourceH ds_out =
+        GDALCreate(dstDriver, dst.c_str(), 0, 0, 0, GDT_Unknown, nullptr);
 
-    OGRLayerH lyr_out = GDALDatasetCreateLayer(ds_out, "out", NULL, wkbMultiPolygon, nullptr);
+    OGRLayerH lyr_out =
+        GDALDatasetCreateLayer(ds_out, "out", NULL, wkbMultiPolygon, nullptr);
 
     GEOSContextHandle_t geos_context = initGEOS_r(nullptr, nullptr);
     GEOSContext_setErrorMessageHandler_r(geos_context, print_message, nullptr);
@@ -68,7 +78,7 @@ int main(int argc, char** argv) {
     OGRFeatureH feature = OGR_L_GetNextFeature(lyr);
 
     std::chrono::milliseconds runtime(0);
-    exactextract::Box box (te[0], te[1], te[2], te[3]);
+    exactextract::Box box(te[0], te[1], te[2], te[3]);
     exactextract::Grid<exactextract::bounded_extent> grid(box, tr[0], tr[1]);
 
     std::size_t features = 0;
@@ -85,16 +95,19 @@ int main(int argc, char** argv) {
         OGR_G_GetEnvelope(geom, &e);
 
         auto start = std::chrono::high_resolution_clock::now();
-        auto result = exactextract::RasterCellIntersection::subdivide_polygon(grid, geos_context, g);
+        auto result = exactextract::RasterCellIntersection::subdivide_polygon(
+            grid, geos_context, g);
         auto stop = std::chrono::high_resolution_clock::now();
 
-        runtime += std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+        runtime +=
+            std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
 
         auto ngeoms = GEOSGetNumGeometries_r(geos_context, result.get());
         for (int i = 0; i < ngeoms; i++) {
-
             std::size_t wkbSize;
-            unsigned char* wkb = GEOSGeomToWKB_buf_r(geos_context, GEOSGetGeometryN_r(geos_context, result.get(), i), &wkbSize);
+            unsigned char* wkb = GEOSGeomToWKB_buf_r(
+                geos_context, GEOSGetGeometryN_r(geos_context, result.get(), i),
+                &wkbSize);
             OGRGeometryH ogr_geom;
             OGR_G_CreateFromWkb(wkb, srs, &ogr_geom, -1);
 
@@ -112,7 +125,8 @@ int main(int argc, char** argv) {
 
     GDALClose(ds_out);
 
-    std::cerr << "Subdivided " << features << " features with " << grid.size() << " cells in " << runtime.count() << " ms" << std::endl;
+    std::cerr << "Subdivided " << features << " features with " << grid.size()
+              << " cells in " << runtime.count() << " ms" << std::endl;
 
     return 0;
 }

@@ -14,6 +14,7 @@
 
 #include "utils.h"
 
+#include <iostream>
 #include <regex>
 #include <sstream>
 #include <stdexcept>
@@ -114,7 +115,7 @@ namespace exactextract {
             if (!weights.empty())
                 ret.weights = std::move(weights);
             ret.coverage_threshold =
-                std::stod(threshold.empty() ? "0.0" : threshold);
+                std::stof(threshold.empty() ? "0.0" : threshold);
         } else {
             throw std::runtime_error("Invalid stat descriptor.");
         }
@@ -126,6 +127,10 @@ namespace exactextract {
 
             if (!ret.weights.empty()) {
                 ss << '_' << ret.weights;
+            }
+
+            if (ret.coverage_threshold != 0.0f) {
+                ss << '_' << ret.coverage_threshold;
             }
 
             ret.name = ss.str();

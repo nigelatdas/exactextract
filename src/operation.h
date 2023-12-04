@@ -16,6 +16,7 @@
 #define EXACTEXTRACT_OPERATION_H
 
 #include <functional>
+#include <iostream>
 #include <string>
 
 #include "feature.h"
@@ -37,8 +38,8 @@ namespace exactextract {
     class Operation {
     public:
         Operation(std::string p_stat, std::string p_name,
-                  RasterSource* p_values, RasterSource* p_weights = nullptr,
-                  float p_coverage_threshold = 0.0)
+                  float p_coverage_threshold, RasterSource* p_values,
+                  RasterSource* p_weights = nullptr)
             : stat{std::move(p_stat)},
               name{std::move(p_name)},
               values{p_values},
@@ -54,6 +55,10 @@ namespace exactextract {
                 m_key = values->name() + "|" + weights->name();
             } else {
                 m_key = values->name();
+            }
+
+            if (coverage_threshold > 0.0f) {
+                m_key += "|" + std::to_string(coverage_threshold);
             }
         }
 
@@ -94,7 +99,7 @@ namespace exactextract {
 
         virtual void set_result(const StatsRegistry& reg,
                                 const std::string& fid, Feature& f_out) const {
-            RasterStats<double> defaultStat = RasterStats<double>(0.0f);
+            RasterStats<double> defaultStat = RasterStats<double>(0.0);
 
             const RasterStats<double>& stats = (reg.contains(fid, *this))
                                                    ? reg.stats(fid, *this)
