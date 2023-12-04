@@ -46,6 +46,7 @@ namespace exactextract {
                   0},  // the sum of all pixels that were counted as overlapping
               m_sum_ciwi{0},
               m_sum_ci{0},
+              m_area{0},
               m_sum_xici{0},
               m_sum_xiciwi{0},
               m_store_values{store_values},
@@ -136,6 +137,8 @@ namespace exactextract {
                     m_counted_sum += static_cast<double>(val);
                 }
             }
+
+            m_area += static_cast<double>(coverage);
             if (!has_value)
                 return;
 
@@ -305,13 +308,19 @@ namespace exactextract {
 
         /**
          * The number of raster cells touched by the with any defined value
-         * covered by the polygon. Weights are not taken
-         * into account.
+         * covered by the polygon. Weights are not taken into account.
          */
         float count() const {
             return (float)m_sum_ci;
         }
 
+        /**
+         * The sum of fractions of raster cells touched by the polygon.
+         * Including those with no value. Weights are not taken into account.
+         */
+        float area() const {
+            return (float)m_area;
+        }
         /**
          * The number of raster cells with a specific value
          * covered by the polygon. Weights are not taken
@@ -483,6 +492,8 @@ namespace exactextract {
         double m_counted_sum;  // sum of all touched pixels
         double m_sum_ciwi;
         double m_sum_ci;
+        double m_area;  // sum of fractions of all pixels that intersect the
+                        // polygon
         double m_sum_xici;
         double m_sum_xiciwi;
         WestVariance m_variance;

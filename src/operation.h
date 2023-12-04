@@ -113,6 +113,8 @@ namespace exactextract {
                 f_out.set(m_field_names[0], stats.sum());
             } else if (stat == "count") {
                 f_out.set(m_field_names[0], stats.count());
+            } else if (stat == "area") {
+                f_out.set(m_field_names[0], stats.area());
             } else if (stat == "rawcount") {
                 f_out.set(m_field_names[0], stats.rawcount());
             } else if (stat == "rawhitcount") {

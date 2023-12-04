@@ -97,6 +97,9 @@ namespace exactextract {
         CHECK(stats.rawsum() == (1 * 0 + 2 * 1 + 3 * 0) +
                                     (4 * 1 + 5 * 1 + 6 * 1) +
                                     (0 * 0 + 0 * 1 + 7 * 0));
+
+        CHECK(stats.area() ==
+              (0.25 + 0.5 + 0.25) + (0.5 + 1.0 + 0.5) + (0.25 + 0.5 + 0.25));
     }
 
     TEMPLATE_TEST_CASE("Weighted multiresolution stats", "[stats]", float,
