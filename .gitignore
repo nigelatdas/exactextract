@@ -14,4 +14,6 @@ src/massif.out.984337
 .envrc
 *.gpkg
 *.tif
-*.xml
+*.xml.venv
+deploy
+app/.venv/

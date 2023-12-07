@@ -30,16 +30,19 @@ ENTRYPOINT ["exactextract"]
 #--------------------
 
 # Use an official Python runtime as a parent image
-FROM python:3.8
+FROM python:3.9.13-slim-buster
 
 # Set the working directory to /app
 WORKDIR /app
 
 # Copy the current directory contents into the container at /app
 COPY --from=build-deps exactextract /app
-COPY run_exactextract.py /app
-COPY 512z_au_crop_yield_2023-10-04.tif /app
-COPY system_farms.gpkg /app
+COPY app/requirements.txt /app
+RUN pip3 install -r requirements.txt
+
+# COPY data/raster/512z_au_crop_yield_2023-10-04.tif /app
+# COPY data/geoms/system_farms.gpkg /app
+COPY app/run_exactextract.py /app
 
 # Set the entry point to run the scripts
 ENTRYPOINT ["python", "run_exactextract.py"]
