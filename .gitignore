@@ -17,3 +17,4 @@ src/massif.out.984337
 *.xml.venv
 deploy
 app/.venv/
+hist*.txt

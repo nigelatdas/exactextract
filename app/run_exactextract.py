@@ -2,7 +2,8 @@
 # eg: exactextract -r "wheat:../hacking/512z_au_crop_yield_2023-10-04.tif[1]" -p ~/system_farms.gpkg -f id --output ../data/full_512z_au_crop_yield_2023-10-04__001.csv -s "sum(wheat)" -s "count(wheat)" -s "rawsum(wheat:0.01)" -s "rawhitcount(wheat:0.01)" -s "rawcount(wheat:0.01)"  --strategy raster-sequential
 
 # import os
-# import sys
+import sys
+
 # import argparse
 import subprocess
 
@@ -18,10 +19,12 @@ def flatten(l):
 
 def get_config():
     return {
-        "shape_data": "/vsis3/nigel-temp-bucket/system_farms.gpkg",
+        #        "shape_data": "/vsis3/nigel-temp-bucket/system_farms.gpkg",
+        "shape_data": "./data/system_farms.gpkg",
         "shape_id": "id",
         "raster": {
-            "path": "/vsis3/nigel-temp-bucket/cog_au_crop_yield_2023-10-04.tif",
+            #            "path": "/vsis3/nigel-temp-bucket/cog_au_crop_yield_2023-10-04.tif",
+            "path": "./data/cog_au_crop_yield_2023-10-04.tif",
             "bands": [
                 {"name": "wheat", "band": "1", "stats": ["sum", "count", "area"]},
                 {"name": "barley", "band": "2", "stats": ["sum", "count", "area"]},
@@ -29,7 +32,7 @@ def get_config():
             ],
         },
         "strategy": "raster-sequential",
-        "output": "./output.csv",
+        "output": "./output/output.csv",
     }
 
 
@@ -50,7 +53,7 @@ def get_config():
 def main():
     config = get_config()
     execute(config)
-    upload_file(config["output"], "nigel-temp-bucket", "output.csv")
+    # upload_file(config["output"], "nigel-temp-bucket", "output.csv")
 
 
 def execute(config):
@@ -83,6 +86,9 @@ def execute(config):
     )
 
     cmd = exe + strategy + geometries + fid + all_stats + output
+    print(cmd)
+    # flush std out
+    sys.stdout.flush()
     subprocess.run(cmd)
 
 
