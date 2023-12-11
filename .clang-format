@@ -18,4 +18,6 @@ AlwaysBreakAfterDefinitionReturnType: None
 AlwaysBreakAfterReturnType: None
 AlwaysBreakBeforeMultilineStrings: false
 AlwaysBreakTemplateDeclarations: true
-NamespaceIndentation: All
+NamespaceIndentation: None
+ColumnLimit: 0
+BreakBeforeBraces: BS_Allman
