@@ -16,30 +16,29 @@
 
 namespace exactextract {
 
-    void
-    DeferredGDALWriter::write(const std::string &fid)
-    {
-        MapFeature feature;
+void
+DeferredGDALWriter::write(const std::string& fid)
+{
+    MapFeature feature;
 
-        OGRFeatureDefnH defn = OGR_L_GetLayerDefn(m_layer);
-        OGRFieldDefnH fld = OGR_FD_GetFieldDefn(defn, 0);
-        std::string fid_name = OGR_Fld_GetNameRef(fld);
+    OGRFeatureDefnH defn = OGR_L_GetLayerDefn(m_layer);
+    OGRFieldDefnH fld = OGR_FD_GetFieldDefn(defn, 0);
+    std::string fid_name = OGR_Fld_GetNameRef(fld);
 
-        feature.set(fid_name, fid);
+    feature.set(fid_name, fid);
 
-        for (const auto &op : m_ops)
-        {
-            op->set_result(*m_reg, fid, feature);
-        }
-
-        m_features.push_back(std::move(feature));
+    for (const auto& op : m_ops) {
+        op->set_result(*m_reg, fid, feature);
     }
 
-    void
-    DeferredGDALWriter::add_operation(const Operation &op)
-    {
-        m_ops.push_back(&op);
-    }
+    m_features.push_back(std::move(feature));
+}
+
+void
+DeferredGDALWriter::add_operation(const Operation& op)
+{
+    m_ops.push_back(&op);
+}
 
 void
 DeferredGDALWriter::finish()

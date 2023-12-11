@@ -9,13 +9,17 @@
 
 using namespace exactextract;
 
-template <typename T>
-class MemoryRasterSource : public RasterSource {
-public:
-    MemoryRasterSource(const AbstractRaster<T>& rast) : m_rast(rast) {
+template<typename T>
+class MemoryRasterSource : public RasterSource
+{
+  public:
+    MemoryRasterSource(const AbstractRaster<T>& rast)
+      : m_rast(rast)
+    {
     }
 
-    std::unique_ptr<AbstractRaster<T>> read_box(const Box& b) override {
+    std::unique_ptr<AbstractRaster<T>> read_box(const Box& b) override
+    {
         if (b != m_rast.grid().extent()) {
             throw std::runtime_error("Unexpected extent.");
         }
@@ -23,7 +27,8 @@ public:
         return std::make_unique<RasterView<T>>(m_rast, m_rast.grid());
     }
 
-    const Grid<bounded_extent>& grid() const override {
+    const Grid<bounded_extent>& grid() const override
+    {
         return m_rast.grid();
     }
 
@@ -31,55 +36,67 @@ private:
     const AbstractRaster<T>& m_rast;
 };
 
-class WKTFeatureSource : public FeatureSource {
-public:
-    WKTFeatureSource(const std::string& wkt) : m_count(0), m_wkt(wkt) {
+class WKTFeatureSource : public FeatureSource
+{
+  public:
+    WKTFeatureSource(const std::string& wkt)
+	  : m_count(0), m_wkt(wkt) 
+    {
     }
 
-    bool next() override {
+    bool next() override
+    {
         return m_count++ < 1;
     }
 
-    GEOSGeometry* feature_geometry(
-        const GEOSContextHandle_t& context) const override {
+    GEOSGeometry* feature_geometry(const GEOSContextHandle_t& context) const override
+    {
         return GEOSGeomFromWKT_r(context, m_wkt.c_str());
     }
 
-    std::string feature_field(const std::string& field_name) const override {
+    std::string feature_field(const std::string& field_name) const override
+    {
         return field_name + "_value";
     }
 
-    const std::string& id_field() const override {
+    const std::string& id_field() const override
+    {
         static std::string fid = "fid";
         return fid;
     }
 
-private:
+  private:
     std::size_t m_count;
     std::string m_wkt;
 };
 
-class TestWriter : public OutputWriter {
-public:
-    void write(const std::string& fid) override {
+class TestWriter : public OutputWriter
+{
+  public:
+    void write(const std::string& fid) override
+    {
         for (const auto& op : m_ops) {
             op->set_result(*m_sr, fid, m_feature);
         }
     }
 
-    void set_registry(const StatsRegistry* sr) override {
+    void set_registry(const StatsRegistry* sr) override
+    {
         m_sr = sr;
     }
 
     MapFeature m_feature;
 
-private:
+  private:
     const StatsRegistry* m_sr;
 };
 
-TEST_CASE("frac sets appropriate column names", "[operation]") {
-    Grid<bounded_extent> ex{{0, 0, 3, 3}, 1, 1};  // 3x3 grid
-    Matrix<double> values{{{9, 1, 1}, {2, 2, 2}, {3, 3, 3}}};
+TEST_CASE("frac sets appropriate column names", "[operation]")
+{
+    Grid<bounded_extent> ex{ { 0, 0, 3, 3 }, 1, 1 }; // 3x3 grid
+    Matrix<double> values{ { { 9, 1, 1 },
+                             { 2, 2, 2 },
+                             { 3, 3, 3 } } };
 
     Raster<double> value_rast(std::move(values), ex.extent());
     MemoryRasterSource<double> value_src(value_rast);
@@ -87,8 +104,7 @@ TEST_CASE("frac sets appropriate column names", "[operation]") {
     WKTFeatureSource ds("POLYGON ((0.5 0.5, 2.5 0.5, 2.5 2.5, 0.5 0.5))");
 
     std::vector<std::unique_ptr<Operation>> ops;
-    ops.emplace_back(
-        std::make_unique<Operation>("frac", "x", 0.0, &value_src, nullptr));
+    ops.emplace_back(std::make_unique<Operation>("frac", "x", 0.0, &value_src, nullptr));
 
     TestWriter writer;
 
@@ -107,7 +123,9 @@ TEST_CASE("frac sets appropriate column names", "[operation]") {
 
 TEST_CASE("weighted_frac sets appropriate column names", "[operation]") {
     Grid<bounded_extent> ex{{0, 0, 3, 3}, 1, 1};  // 3x3 grid
-    Matrix<double> values{{{9, 1, 1}, {2, 2, 2}, {3, 3, 3}}};
+    Matrix<double> values{{ {9, 1, 1}, 
+							{2, 2, 2},
+							{3, 3, 3}}};
 
     Raster<double> value_rast(std::move(values), ex.extent());
     MemoryRasterSource<double> value_src(value_rast);
