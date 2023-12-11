@@ -31,7 +31,7 @@ StatsRegistry::stats(const std::string& feature, const Operation& op, bool store
     RasterStats<double> new_stats(op.coverage_threshold, store_values);
     stats_for_feature.insert({op.key(), std::move(new_stats)});
 
-    return stats_for_feature[op.key()];
+    return stats_for_feature.at(op.key());
 }
 
 bool

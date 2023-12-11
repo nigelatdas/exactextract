@@ -65,11 +65,12 @@ namespace exactextract {
 
             for (const auto &f : hits) {
                 std::unique_ptr<Raster<float>> coverage;
-                std::set<std::pair<RasterSource*, RasterSource*>> processed;
+                std::set<std::tuple<RasterSource *, RasterSource *, float>>
+                    processed;
 
                 for (const auto &op : m_operations) {
                     // Avoid processing same values/weights for different stats
-                    auto key = std::make_pair(op->weights, op->values);
+                    auto key = std::make_tuple(op->weights, op->values, op->coverage_threshold);
                     if (processed.find(key) != processed.end()) {
                         continue;
                     } else {

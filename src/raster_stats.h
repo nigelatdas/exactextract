@@ -64,8 +64,8 @@ namespace exactextract {
                 for (size_t j = 0; j < rv.cols(); j++) {
                     float pct_cov = intersection_percentages(i, j);
                     T val;
-                    if (pct_cov > 0 && rv.get(i, j, val)) {
-                        process_value(val, pct_cov, 1.0);
+                    if (pct_cov > 0) {
+                        process_value(val, pct_cov, 1.0, rv.get(i, j, val));
                     }
                 }
             }
@@ -103,13 +103,13 @@ namespace exactextract {
                     float pct_cov = intersection_percentages(i, j);
                     T weight;
                     T val;
-
-                    if (pct_cov > 0 && rv.get(i, j, val)) {
+                    bool has_value = rv.get(i, j, val);
+                    if (pct_cov > 0) {
                         if (wv.get(i, j, weight)) {
-                            process_value(val, pct_cov, weight);
+                            process_value(val, pct_cov, weight, has_value);
                         } else {
                             // Weight is NODATA, convert to NAN
-                            process_value(val, pct_cov, std::numeric_limits<double>::quiet_NaN());
+                            process_value(val, pct_cov, std::numeric_limits<double>::quiet_NaN(), has_value);
                         }
                     }
                 }
