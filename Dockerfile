@@ -18,6 +18,8 @@ RUN apt-get update && apt-get install -y \
 
 COPY . /exactextract
 
+RUN ls -al
+
 RUN mkdir /cmake-build-release && \
   cd /cmake-build-release && \
   cmake -DCMAKE_BUILD_TYPE=Release /exactextract && \
@@ -38,7 +40,8 @@ RUN apt-get update && apt-get install -y \
   libproj-dev \
   gdal-bin \
   libgdal-dev \
-  libgeos-dev 
+  libgeos-dev \
+  python3-botocore
 
 COPY --from=build-deps /usr/local/bin/exactextract /usr/local/bin/exactextract
 
@@ -49,6 +52,7 @@ WORKDIR /app
 RUN --mount=type=bind,source=./app/requirements.txt,target=/tmp/requirements.txt \
   pip3 install -r  /tmp/requirements.txt
 
+RUN mkdir /app/output
 
 # COPY data/raster/512z_au_crop_yield_2023-10-04.tif /app
 # COPY data/geoms/system_farms.gpkg /app

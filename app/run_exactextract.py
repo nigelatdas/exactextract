@@ -11,6 +11,8 @@ import logging
 import boto3
 from botocore.exceptions import ClientError
 import os
+import urllib3
+import json
 
 
 def flatten(l):
@@ -19,12 +21,13 @@ def flatten(l):
 
 def get_config():
     return {
-        #        "shape_data": "/vsis3/nigel-temp-bucket/system_farms.gpkg",
-        "shape_data": "./data/system_farms.gpkg",
+        # /vsis3_streaming/
+        "shape_data": "/vsis3/nigel-temp-bucket/system_farms.gpkg",
+        # "shape_data": "./data/system_farms.gpkg",
         "shape_id": "id",
         "raster": {
-            #            "path": "/vsis3/nigel-temp-bucket/cog_au_crop_yield_2023-10-04.tif",
-            "path": "./data/cog_au_crop_yield_2023-10-04.tif",
+            "path": "/vsis3/nigel-temp-bucket/cog_au_crop_yield_2023-10-04.tif",
+            # "path": "./data/cog_au_crop_yield_2023-10-04.tif",
             "bands": [
                 {"name": "wheat", "band": "1", "stats": ["sum", "count", "area"]},
                 {"name": "barley", "band": "2", "stats": ["sum", "count", "area"]},
@@ -51,9 +54,33 @@ def get_config():
 
 
 def main():
+    contents = urllib3.request(
+        "http://169.254.170.2"
+        + os.environ.get("AWS_CONTAINER_CREDENTIALS_RELATIVE_URI")
+    ).read()
+    env_dict = json.loads(contents)
+
+    # set if it's not set
+    if os.environ.get("AWS_ACCESS_KEY_ID") is None:
+        os.environ["AWS_ACCESS_KEY_ID"] = env_dict["AccessKeyId"]
+    if os.environ.get("AWS_SECRET_ACCESS_KEY") is None:
+        os.environ["AWS_SECRET_ACCESS_KEY"] = env_dict["SecretAccessKey"]
+    if os.environ.get("AWS_SESSION_TOKEN") is None:
+        os.environ["AWS_SESSION_TOKEN"] = env_dict["Token"]
+    if os.environ.get("AWS_REGION") is None:
+        os.environ["AWS_REGION"] = "ap-southeast-2"
+
+    # {
+    #     "AccessKeyId": "ACCESS_KEY_ID",
+    #     "Expiration": "EXPIRATION_DATE",
+    #     "RoleArn": "TASK_ROLE_ARN",
+    #     "SecretAccessKey": "SECRET_ACCESS_KEY",
+    #     "Token": "SECURITY_TOKEN_STRING"
+    # }
+
     config = get_config()
     execute(config)
-    # upload_file(config["output"], "nigel-temp-bucket", "output.csv")
+    upload_file(config["output"], "nigel-temp-bucket", "output.csv")
 
 
 def execute(config):
@@ -105,14 +132,28 @@ def upload_file(file_name, bucket, object_name=None):
     if object_name is None:
         object_name = os.path.basename(file_name)
 
+    # database_url = os.environ.get("DATABASE_URL", "localhost:5432")
+
     # Upload the file
-    s3_client = boto3.client("s3")
+    s3_client = boto3.client(
+        "s3",
+        aws_access_key_id=os.environ["AWS_ACCESS_KEY_ID"],
+        aws_secret_access_key=os.environ["AWS_SECRET_ACCESS_KEY"],
+        aws_session_token=os.environ["AWS_SESSION_TOKEN"],
+        region_name=os.environ["AWS_REGION"],
+    )
+
     try:
         response = s3_client.upload_file(file_name, bucket, object_name)
     except ClientError as e:
         logging.error(e)
         return False
     return True
+
+    # set this env var ('AWS_REGION')
+    # set this env var ('AWS_SECRET_ACCESS_KEY')
+    # set this env var ('AWS_ACCESS_KEY_ID')
+    # set this env var ('AWS_SESSION_TOKEN')
 
 
 if __name__ == "__main__":
